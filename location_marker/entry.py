@@ -20,25 +20,25 @@ server_inst: PluginServerInterface
 
 def show_help(source: CommandSource):
 	help_msg_lines = '''
---------- MCDR 路标插件 v{2} ---------
-一个位于服务端的路标管理插件
-§7{0}§r 显示此帮助信息
-§7{0} list §6[<可选页号>]§r 列出所有路标
-§7{0} search §3<关键字> §6[<可选页号>]§r 搜索坐标，返回所有匹配项
-§7{0} add §b<路标名称> §e<x> <y> <z> <维度id> §6[<可选注释>]§r 加入一个路标
-§7{0} add §b<路标名称> §ehere §6[<可选注释>]§r 加入自己所处位置、维度的路标
-§7{0} del §b<路标名称>§r 删除路标，要求全字匹配
-§7{0} info §b<路标名称>§r 显示路标的详情等信息
-§7{0} §3<关键字> §6[<可选页号>]§r 同 §7{0} search§r
-其中：
-当§6可选页号§r被指定时，将以每{1}个路标为一页，列出指定页号的路标
-§3关键字§r以及§b路标名称§r为不包含空格的一个字符串，或者一个被""括起的字符串
+--------- MCDR Waypoint plugin v{2} ---------
+A waypoint manager plugin on the server side
+§7{0}§r Show this message
+§7{0} list §6[<Optional page number>]§r List all waypoint signs
+§7{0} search §3<Keyword> §6[<Optional page number>]§r Search coordinates，Return all matches
+§7{0} add §b<Waypoint name> §e<x> <y> <z> <Dimension id> §6[<Optional notes>]§r Add a signpost
+§7{0} add §b<Waypoint name> §ehere §6[<可选注释>]§r Add where you are、Dimensional signposting
+§7{0} del §b<Waypoint name>§r Delete waypoints, full word match required
+§7{0} info §b<Waypoint name>§r Display of information such as details of road signs
+§7{0} §3<Key words> §6[<Optional page number>]§r with §7{0} search§r
+of which：
+When the §6optional page number §ris specified, it will be specified with each{1}A page of signposts, listing the signposts of a given page number
+§3keyword §rand §bwaypoint name §ras a string without spaces or as a string enclosed in ""
 '''.format(constants.PREFIX, config.item_per_page, server_inst.get_self_metadata().version).splitlines(True)
 	help_msg_rtext = RTextList()
 	for line in help_msg_lines:
 		result = re.search(r'(?<=§7)!!loc[\w ]*(?=§)', line)
 		if result is not None:
-			help_msg_rtext.append(RText(line).c(RAction.suggest_command, result.group()).h('点击以填入 §7{}§r'.format(result.group())))
+			help_msg_rtext.append(RText(line).c(RAction.suggest_command, result.group()).h('Click to fill in §7{}§r'.format(result.group())))
 		else:
 			help_msg_rtext.append(line)
 	source.reply(help_msg_rtext)
@@ -87,7 +87,7 @@ def print_location(location: Location, printer: Callable[[RTextBase], Any], *, s
 	if location.desc is not None:
 		name_text.h(location.desc)
 	text = RTextList(
-		name_text.h('点击以显示详情').c(RAction.run_command, '{} info {}'.format(constants.PREFIX, location.name)),
+		name_text.h('Click to show details').c(RAction.run_command, '{} info {}'.format(constants.PREFIX, location.name)),
 		' ',
 		get_coordinate_text(location.pos, location.dim),
 		' §7@§r ',
@@ -126,41 +126,41 @@ def list_locations(source: CommandSource, *, keyword: Optional[str] = None, page
 		color = {False: RColor.dark_gray, True: RColor.gray}
 		prev_page = RText('<-', color=color[has_prev])
 		if has_prev:
-			prev_page.c(RAction.run_command, '{} list {}'.format(constants.PREFIX, page - 1)).h('点击显示上一页')
+			prev_page.c(RAction.run_command, '{} list {}'.format(constants.PREFIX, page - 1)).h('Click to show previous page')
 		next_page = RText('->', color=color[has_next])
 		if has_next:
-			next_page.c(RAction.run_command, '{} list {}'.format(constants.PREFIX, page + 1)).h('点击显示下一页')
+			next_page.c(RAction.run_command, '{} list {}'.format(constants.PREFIX, page + 1)).h('Click to show next page')
 
 		source.reply(RTextList(
 			prev_page,
-			' 第§6{}§r页 '.format(page),
+			' Page §6{}§r '.format(page),
 			next_page
 		))
 	if keyword is None:
-		source.reply('共有§6{}§r个路标'.format(matched_count))
+		source.reply('There are a total of §6{}§r waypoints'.format(matched_count))
 	else:
-		source.reply('共找到§6{}§r个路标'.format(matched_count))
+		source.reply('A total of §6{}§r waypoints were found'.format(matched_count))
 
 
 def add_location(source: CommandSource, name, x, y, z, dim, desc=None):
 	if storage.contains(name):
-		source.reply('路标§b{}§r已存在，无法添加'.format(name))
+		source.reply('The signpost §b{}§r already exists and cannot be added'.format(name))
 		return
 	try:
 		location = Location(name=name, desc=desc, dim=dim, pos=Point(x=x, y=y, z=z))
 		storage.add(location)
 	except Exception as e:
-		source.reply('路标§b{}§r添加§c失败§r: {}'.format(name, e))
+		source.reply('Waypoint §b{}§rAdded §cFailed§r: {}'.format(name, e))
 		server_inst.logger.exception('Failed to add location {}'.format(name))
 	else:
-		source.get_server().say('路标§b{}§r添加§a成功'.format(name))
+		source.get_server().say('Waypoint §b{}§r added§a successfully'.format(name))
 		broadcast_location(source.get_server(), location)
 
 
 @new_thread('LocationMarker')
 def add_location_here(source: CommandSource, name, desc=None):
 	if not isinstance(source, PlayerCommandSource):
-		source.reply('仅有玩家允许使用本指令')
+		source.reply('Only players are allowed to use this command')
 		return
 	api = source.get_server().get_plugin_instance('minecraft_data_api')
 	pos = api.get_player_coordinate(source.player)
@@ -171,26 +171,26 @@ def add_location_here(source: CommandSource, name, desc=None):
 def delete_location(source: CommandSource, name):
 	loc = storage.remove(name)
 	if loc is not None:
-		source.get_server().say('已删除路标§b{}§r'.format(name))
+		source.get_server().say('Deleted waypoints §b{}§r'.format(name))
 		broadcast_location(source.get_server(), loc)
 	else:
-		source.reply('未找到路标§b{}§r'.format(name))
+		source.reply('No waypoints found§b{}§r'.format(name))
 
 
 def show_location_detail(source: CommandSource, name):
 	loc = storage.get(name)
 	if loc is not None:
 		broadcast_location(source.get_server(), loc)
-		source.reply(RTextList('路标名: ', RText(loc.name, color=RColor.aqua)))
-		source.reply(RTextList('坐标: ', get_coordinate_text(loc.pos, loc.dim, precision=4)))
-		source.reply(RTextList('详情: ', RText(loc.desc if loc.desc is not None else '无', color=RColor.gray)))
+		source.reply(RTextList('Road sign name: ', RText(loc.name, color=RColor.aqua)))
+		source.reply(RTextList('Coordinates: ', get_coordinate_text(loc.pos, loc.dim, precision=4)))
+		source.reply(RTextList('Details: ', RText(loc.desc if loc.desc is not None else '无', color=RColor.gray)))
 		x, y, z = map(round, loc.pos)
-		source.reply('VoxelMap路标: [name:{}, x:{}, y:{}, z:{}, dim:{}]'.format(loc.name, x, y, z, loc.dim))
-		source.reply('VoxelMap路标(1.16+): [name:{}, x:{}, y:{}, z:{}, dim:{}]'.format(loc.name, x, y, z, get_dim_key(loc.dim)))
+		source.reply('VoxelMap Waypoints: [name:{}, x:{}, y:{}, z:{}, dim:{}]'.format(loc.name, x, y, z, loc.dim))
+		source.reply('VoxelMap Waypoints(1.16+): [name:{}, x:{}, y:{}, z:{}, dim:{}]'.format(loc.name, x, y, z, get_dim_key(loc.dim)))
 		# <Location Marker> xaero-waypoint:test:T:9987:71:9923:6:false:0:Internal-overworld-waypoints
 		source.reply('<{}> xaero-waypoint:{}:{}:{}:{}:{}:6:false:0:Internal-{}-waypoints'.format(server_inst.get_self_metadata().name, loc.name, loc.name[0], x, y, z, get_dim_key(loc.dim).replace('minecraft:', '')))
 	else:
-		source.reply('未找到路标§b{}§r'.format(name))
+		source.reply('Waypoint signs§b{}§r'.format(name))
 
 
 def on_load(server: PluginServerInterface, old_inst):
@@ -199,7 +199,7 @@ def on_load(server: PluginServerInterface, old_inst):
 	config = server.load_config_simple(constants.CONFIG_FILE, target_class=Config)
 	storage.load(os.path.join(server.get_data_folder(), constants.STORAGE_FILE))
 
-	server.register_help_message(constants.PREFIX, '路标管理')
+	server.register_help_message(constants.PREFIX, 'Wayfinding management')
 	search_node = QuotableText('keyword').\
 		runs(lambda src, ctx: list_locations(src, keyword=ctx['keyword'])).\
 		then(Integer('page').runs(lambda src, ctx: list_locations(src, keyword=ctx['keyword'], page=ctx['page'])))
